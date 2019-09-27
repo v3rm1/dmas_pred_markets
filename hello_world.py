@@ -2,12 +2,13 @@ import random
 import heapq
 
 MAX_ITER = 50
+RISK = 0.05
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
 class Market:
     all_agents = []
-    market_price = 0.5
+    market_price = None
     
     def __init__(self, n):
         low = random.uniform(0,0.4)
@@ -66,7 +67,7 @@ class Agent:
         self.n_contracts_for = 0
         self.n_contracts_against = 0
         
-    def for_main(self, bids_for, bids_against):
+    def for_main(self, bids_for, bids_against, market_price):
         max_for = heapq.nsmallest(1, bids_for)
         max_against = heapq.nsmallest(1, bids_against)
         
@@ -74,19 +75,22 @@ class Agent:
         
         if max_for == []:            #if no bids_for have been placed yet
             if max_against == []:       #if no bids_against have been placed yet
-                buy_price = self.belief/2            #offer to buy at half the price you think it's worth
+                if market_price == None:
+                    buy_price = self.belief/2          #offer to buy at half the price you think it's worth
+                else:
+                    buy_price = market_price + 0.001
             else:
                 buy_price = 1 - max_against[0].price             #offer to buy at the cheapest price
         else:
             buy_price = max_for[0].price 
-            buy_price += 0.01               #offer to buy at 1 cent more than the next highest bid
+            buy_price += 0.001               #offer to buy at 1 cent more than the next highest bid
         
-        if buy_price < self.belief - 0.05:           #if the price is less than you think it's worth (0.05 represents risk aversion)
+        if buy_price < self.belief - RISK:           #if the price is less than you think it's worth (0.05 represents risk aversion)
             if self.wealth >= buy_price:              #if you can afford the price
                 #print("\tBelief: ", self.belief, "\tOffer for: ", buy_price)
                 place_bid_for(self, bids_for, buy_price)
     
-    def against_main(self, bids_for, bids_against):
+    def against_main(self, bids_for, bids_against, market_price):
         max_for = heapq.nsmallest(1, bids_for)
         max_against = heapq.nsmallest(1, bids_against)
         buy_price = 1
@@ -94,14 +98,17 @@ class Agent:
         
         if max_against == []:           #if no bids_against have been placed yet
             if max_for == []:           #if no bids_for have been placed yet
-                buy_price = against_belief/2      #offer to buy for half what you think it's worth
+                if market_price == None:
+                    buy_price = against_belief/2      #offer to buy for half what you think it's worth
+                else:
+                    buy_price = (1-market_price) + 0.001
             else:
                 buy_price = 1 - max_for[0].price          #offer to buy at cheapest price
         else:
-            sell_price = max_against[0].price
-            sell_price += 0.01            #offer to buy at 1 cent more than highest bid
-        
-        if buy_price < against_belief - 0.05:         #if the price is less than you think it's worth (0.05 represents risk aversion)
+            buy_price = max_against[0].price
+            buy_price += 0.001            #offer to buy at 1 cent more than highest bid
+
+        if buy_price < against_belief - RISK:         #if the price is less than you think it's worth (0.05 represents risk aversion)
             if self.wealth >= buy_price:              #if you can afford the price
                 #print("\tBelief: ", self.belief, "\tOffer against: ", buy_price)
                 place_bid_against(self, bids_against, buy_price)
@@ -123,14 +130,6 @@ def get_older_price(bid_for, bid_against):
         return bid_for.price
     else:
         return 1 - bid_against.price
-        
-def collect_payment(agent_id, price, all_agents):
-    all_agents[agent_id].wealth -= price
-    all_agents[agent_id].n_contracts_for += 1
-    
-def pay_out_to(agent_id, price, all_agents):
-    all_agents[agent_id].wealth += price
-    all_agents[agent_id].n_contracts_for -= 1
     
 def transact(bids_for, bids_against, market):
     if bids_for == [] or bids_against == []:
@@ -175,8 +174,8 @@ def main():
         for a in all_agents:
             #print(a.i_d)
             
-            a.for_main(bids_for, bids_against)                 
-            a.against_main(bids_for, bids_against)              
+            a.against_main(bids_for, bids_against, market.market_price)  
+            a.for_main(bids_for, bids_against, market.market_price)                 
             
             transact(bids_for, bids_against, market)
         
@@ -185,6 +184,8 @@ def main():
     all_beliefs = [market.all_agents[i].belief for i in range(0,100)]
     average = sum(all_beliefs) / len(all_beliefs)
     print("Average Belief: ", average)
+    
+    print("\nAgent Summary:")
     
     for a in market.all_agents:
         print("Belief: ", a.belief, "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", a.wealth)
