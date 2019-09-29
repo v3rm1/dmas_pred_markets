@@ -1,7 +1,17 @@
 import random
 import heapq
+import argparse
+import pandas as pd
+import matplotlib.pyplot as plt
 
-MAX_ITER = 50
+parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
+parser.add_argument('-n', metavar="NUM_AGENTS", default=100, type=int, help='Provide the number of agents in the market (default: 100)')
+parser.add_argument('-i', metavar="NUM_ITERATIONS", default=50, type=int, help='Provide the number of iterations of the market (default: 50)')
+
+args = parser.parse_args()
+
+N_AGENTS = args.n
+MAX_ITER = args.i
 RISK = 0.05
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
@@ -161,8 +171,10 @@ def transact(bids_for, bids_against, market):
         market.market_price = market_price                  #set the new market price after transaction
         
 def main():
-    print("Creating 100 agents...\n")
-    market = Market(100)
+    print("Creating {} agents...\n".format(N_AGENTS))
+    market = Market(N_AGENTS)
+    # data = pd.DataFrame(columns=['iter', 'agent_id', 'belief', 'wealth', 'n_for', 'n_against', 'market_price'])
+    price_history = []
 
     bids_against = []
     heapq.heapify(bids_against)
@@ -178,20 +190,32 @@ def main():
             a.for_main(bids_for, bids_against, market.market_price)                 
             
             transact(bids_for, bids_against, market)
+            # data.loc[(i*N_AGENTS)+a.i_d] = [i, a.i_d, a.belief, a.wealth, a.n_contracts_for, a.n_contracts_against, market.market_price]
         
         print("Iter: ", i, "\tMarket Price: ", market.market_price)
+        price_history.append(market.market_price)
         
-    all_beliefs = [market.all_agents[i].belief for i in range(0,100)]
+        
+    all_beliefs = [market.all_agents[i].belief for i in range(0,N_AGENTS)]
     average = sum(all_beliefs) / len(all_beliefs)
     print("Average Belief: ", average)
     
     print("\nAgent Summary:")
     
     for a in market.all_agents:
-        print("Belief: ", a.belief, "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", a.wealth)
+        print("Agent ID: ", a.i_d, "\tBelief: ", a.belief, "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", a.wealth)
 
     
     #import pdb; pdb.set_trace()
+
+    plt.figure(figsize=(12,4))
+    plt.plot(range(MAX_ITER), price_history)
+    plt.xlabel("Iterations (Market Cycles)")
+    plt.ylabel("Price")
+    plt.grid()
+    plt.show()
+
+
     
 
 if __name__ == "__main__":
