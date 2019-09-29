@@ -1,4 +1,4 @@
-# Prediction Market Simulation: Design of Multi-Agent Systems Project
+# Group B16 - Prediction Market Simulation: Design of Multi-Agent Systems Project
 In prediction (or Information) markets participants trade in contracts whose payoff depends on future events. In a truly efficient prediction market, the price of a contract will be the best predictor of the related event.
 
 ## Instructions
