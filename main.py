@@ -10,12 +10,18 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
 parser.add_argument('-n', metavar="NUM_AGENTS", default=100, type=int, help='Provide the number of agents in the market (default: 100)')
-parser.add_argument('-i', metavar="NUM_ITERATIONS", default=50, type=int, help='Provide the number of iterations of the market (default: 50)')
+parser.add_argument('-i', metavar="NUM_ITERATIONS", default=100, type=int, help='Provide the number of iterations of the market (default: 50)')
 
 args = parser.parse_args()
 
 N_AGENTS = args.n
 MAX_ITER = args.i
+
+N_EVIDENCE = 20
+FRACTION_RECEIVING_EVIDENCE = 0.1
+FRACTION_EXTRA_TIME = 0.5
+EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
+
 RISK = 0.05
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
@@ -25,9 +31,7 @@ class Market:
     market_price = None
     
     def __init__(self, n):
-        low = random.uniform(0,0.4)
-        high = random.uniform(0.6,1)
-        self.all_agents = [Agent(i, low, high) for i in range(0,n)]
+        self.all_agents = [Agent(i, 0.5) for i in range(0,n)]
         
     def is_broke(self, agent_id, price, type_purchase):
         if self.all_agents[agent_id].wealth < price:
@@ -53,7 +57,7 @@ class Market:
         self.all_agents[agent_id].wealth -= (1-price)
         self.all_agents[agent_id].n_contracts_against += 1
         if self.all_agents[agent_id].n_contracts_for > 0:
-            self.resolve_contracts(agent_id)
+            self.resolve_contracts(agent_id)    
 
 class Bid:
     type_bid = None #Is it an ask or a bid?
@@ -78,10 +82,10 @@ class Agent:
     n_contracts_for = None
     n_contracts_against = None
     
-    def __init__(self, i_d, low, high):
+    def __init__(self, i_d, starting_belief):
         self.i_d = i_d
-        self.belief = random.uniform(low,high)
-        self.wealth = 10
+        self.belief = starting_belief
+        self.wealth = 100
         self.n_contracts_for = 0
         self.n_contracts_against = 0
         
@@ -130,6 +134,45 @@ class Agent:
             if self.wealth >= buy_price or self.n_contracts_for >= 1:              #if you can afford the price, or you have a contract for to sell
                 #print("\tBelief: ", self.belief, "\tOffer against: ", buy_price)
                 place_bid_against(self, bids_against, buy_price)
+                
+class God:
+    def __init__(self, p_AgivenE, p_BgivenE):
+        self.belief = 0.5
+        self.p_AgivenE = p_AgivenE
+        self.p_BgivenE = p_BgivenE
+        self.p_A = 0.5
+        self.p_B = 0.5
+        self.p_Agiven_notE = 2*self.p_A - self.p_AgivenE        
+        self.p_Bgiven_notE = 2*self.p_B - self.p_BgivenE      
+    
+    def get_answer_to_life_the_universe_and_everything():
+        return 42
+        
+    def update_belief(self, old_belief, evidence):  #this updates a belief using bayes rule, given a new piece of evidence
+        if evidence == "A":
+            new_belief = (old_belief * self.p_AgivenE) / ((old_belief * self.p_AgivenE) + ((1-old_belief) * self.p_Agiven_notE))
+        else:
+            new_belief = (old_belief * self.p_BgivenE) / ((old_belief * self.p_BgivenE) + ((1-old_belief) * self.p_Bgiven_notE))
+        return new_belief
+        
+    def update_universe(self, market, n_receiving_evidence):
+        x = random.uniform(0,1)
+        if x < self.p_A:
+            evidence = "A"
+        else:
+            evidence = "B"
+        self.belief = self.update_belief(self.belief, evidence)         #God updates their own belief
+        
+        #select a random set of agents to receive evidence
+        all_agent_indices = [i for i in range(0, N_AGENTS)]
+        random.shuffle(all_agent_indices)
+        chosen_ones = all_agent_indices[:n_receiving_evidence]
+        
+        for i in range(0, len(chosen_ones)):
+            agent_id = chosen_ones[i]
+            old_belief = market.all_agents[agent_id].belief
+            new_belief = self.update_belief(old_belief, evidence)
+            market.all_agents[agent_id].belief = new_belief
         
 def place_bid_for(a, bids_for, bidding_price):
     global TIME
@@ -179,6 +222,10 @@ def transact(bids_for, bids_against, market):
         market.market_price = market_price                  #set the new market price after transaction
         
 def main():
+    the_almighty = God(0.6, 1-0.6)
+    
+    iters_per_evidence = int(EVIDENCE_TIME/N_EVIDENCE)
+    
     print("Creating {} agents...\n".format(N_AGENTS))
     market = Market(N_AGENTS)
     # data = pd.DataFrame(columns=['iter', 'agent_id', 'belief', 'wealth', 'n_for', 'n_against', 'market_price'])
@@ -189,10 +236,14 @@ def main():
     bids_for = []
     heapq.heapify(bids_against)
     for i in range(0, MAX_ITER):
+        if i < EVIDENCE_TIME:    #allow for extra time after evidence to just trade
+            if i%iters_per_evidence == 0:
+                the_almighty.update_universe(market, int(N_AGENTS * FRACTION_RECEIVING_EVIDENCE))     
+                #print("God has spoken!")       
+        
         all_agents = market.all_agents.copy()
         random.shuffle(all_agents)
         for a in all_agents:
-            #print(a.i_d)
             
             a.for_main(bids_for, bids_against, market.market_price) 
             a.against_main(bids_for, bids_against, market.market_price)  
@@ -203,19 +254,24 @@ def main():
         
         print("Iter: ", i, "\tMarket Price: ", market.market_price)
         price_history.append(market.market_price)
-        
+    
+    print("God's Belief: ", the_almighty.belief)
         
     all_beliefs = [market.all_agents[i].belief for i in range(0,N_AGENTS)]
     average = sum(all_beliefs) / len(all_beliefs)
     print("Average Belief: ", average)
     
+    print("Final Market Price: ", market.market_price)
+    
     print("\nAgent Summary:")
     
     for a in market.all_agents:
-        print("Agent ID: ", a.i_d, "\tBelief: ", a.belief, "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", a.wealth)
+        print("Agent ID: ", a.i_d, "\tBelief: ", "{0:.2f}".format(a.belief), "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", "{0:.2f}".format(a.wealth))
 
-    
+
     #import pdb; pdb.set_trace()
+    
+    #Yeah, sorry, until Peregrine and I sort out our differences, I can't use these. I love the graph though, really nice addition!
 
     #plt.figure(figsize=(12,4))
     #plt.plot(range(MAX_ITER), price_history)
@@ -225,8 +281,7 @@ def main():
     #plt.show()
 
 
-    
-
 if __name__ == "__main__":
     main()
-
+    
+    
