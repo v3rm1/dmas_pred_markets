@@ -4,6 +4,10 @@ import argparse
 #import pandas as pd                I do all my programming on Peregrine, and I don't know how to get pandas....
 #import matplotlib.pyplot as plt                        ^^^ see above. If anyone knows, please let me know :)
 
+# Tommy: There's a page on the wiki about installing packages: 
+# https://redmine.hpc.rug.nl/redmine/projects/peregrine/wiki/Installation_of_extra_applications_or_libraries_(make_pip_or_R)
+# Should be just a couple lines in the script
+
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
 parser.add_argument('-n', metavar="NUM_AGENTS", default=100, type=int, help='Provide the number of agents in the market (default: 100)')
 parser.add_argument('-i', metavar="NUM_ITERATIONS", default=50, type=int, help='Provide the number of iterations of the market (default: 50)')
