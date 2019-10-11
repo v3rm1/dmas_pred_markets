@@ -10,7 +10,7 @@ import argparse
 
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
 parser.add_argument('-n', metavar="NUM_AGENTS", default=100, type=int, help='Provide the number of agents in the market (default: 100)')
-parser.add_argument('-i', metavar="NUM_ITERATIONS", default=100, type=int, help='Provide the number of iterations of the market (default: 50)')
+parser.add_argument('-i', metavar="NUM_ITERATIONS", default=200, type=int, help='Provide the number of iterations of the market (default: 50)')
 
 args = parser.parse_args()
 
@@ -22,7 +22,7 @@ FRACTION_RECEIVING_EVIDENCE = 0.1
 FRACTION_EXTRA_TIME = 0.5
 EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
-RISK = 0.05
+RISK_FACTOR = 0.05
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
@@ -106,11 +106,13 @@ class Agent:
         else:
             buy_price = max_for[0].price 
             buy_price += 0.001               #offer to buy at 1 cent more than the next highest bid
-        
-        if buy_price < self.belief - RISK:           #if the price is less than you think it's worth (0.05 represents risk aversion)
-            if self.wealth >= buy_price or self.n_contracts_against >= 1:              #if you can afford the price, or you have a contract against to sell
-                #print("\tBelief: ", self.belief, "\tOffer for: ", buy_price)
-                place_bid_for(self, bids_for, buy_price)
+            
+        n_would_like_to_buy = int((self.belief-buy_price)/RISK_FACTOR)
+        n_can_buy = int(self.wealth/buy_price) + self.n_contracts_against
+        n_will_buy = min(n_would_like_to_buy, n_can_buy)
+        while n_will_buy > 0:
+            place_bid_for(self, bids_for, buy_price)
+            n_will_buy -= 1
     
     def against_main(self, bids_for, bids_against, market_price):
         max_for = heapq.nsmallest(1, bids_for)
@@ -129,11 +131,13 @@ class Agent:
         else:
             buy_price = max_against[0].price
             buy_price += 0.001            #offer to buy at 1 cent more than highest bid
-
-        if buy_price < against_belief - RISK:         #if the price is less than you think it's worth (0.05 represents risk aversion)
-            if self.wealth >= buy_price or self.n_contracts_for >= 1:              #if you can afford the price, or you have a contract for to sell
-                #print("\tBelief: ", self.belief, "\tOffer against: ", buy_price)
-                place_bid_against(self, bids_against, buy_price)
+            
+        n_would_like_to_buy = int((against_belief-buy_price)/RISK_FACTOR)
+        n_can_buy = int(self.wealth/buy_price) + self.n_contracts_for
+        n_will_buy = min(n_would_like_to_buy, n_can_buy)
+        while n_will_buy > 0:
+            place_bid_against(self, bids_against, buy_price)
+            n_will_buy -= 1
                 
 class God:
     def __init__(self, p_AgivenE, p_BgivenE):
@@ -220,6 +224,9 @@ def transact(bids_for, bids_against, market):
         #print("For: ", market.all_agents[bid_for.agent_id].belief, "\tAgainst: ", market.all_agents[bid_against.agent_id].belief)
         
         market.market_price = market_price                  #set the new market price after transaction
+        transact(bids_for, bids_against, market)
+    else:
+        return
         
 def main():
     the_almighty = God(0.6, 1-0.6)
