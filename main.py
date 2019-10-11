@@ -14,8 +14,8 @@ N_AGENTS = args.n
 MAX_ITER = args.i
 
 N_EVIDENCE = 20
-FRACTION_RECEIVING_EVIDENCE = 0.6667
-FRACTION_EXTRA_TIME = 0.5
+FRACTION_RECEIVING_EVIDENCE = 0.1
+FRACTION_EXTRA_TIME = 0.66667
 EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
 #Values pertaining to agent behavior
@@ -308,8 +308,8 @@ def main():
     plt.xlabel("Iterations (Market Cycles)")
     plt.ylabel("Price")
     plt.grid()
-    plt.show()
-    #plt.savefig('foo.png')
+    #plt.show()
+    plt.savefig('foo.png')
 
 
 if __name__ == "__main__":
