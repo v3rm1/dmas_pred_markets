@@ -5,7 +5,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
-parser.add_argument('-n', metavar="NUM_AGENTS", default=20, type=int, help='Provide the number of agents in the market (default: 100)')
+parser.add_argument('-n', metavar="NUM_AGENTS", default=50, type=int, help='Provide the number of agents in the market (default: 100)')
 parser.add_argument('-i', metavar="NUM_ITERATIONS", default=150, type=int, help='Provide the number of iterations of the market (default: 50)')
 
 args = parser.parse_args()
@@ -20,7 +20,7 @@ EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
 #Values pertaining to agent behavior
 RISK_FACTOR = 0.02
-STUBBORNNESS = 0.5 #range from 0 (trusts the market) to 1 (only trust yourself!)
+STUBBORNNESS = 0.1 #range from 0 (trusts the market) to 1 (only trust yourself!)
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
@@ -262,15 +262,13 @@ def main():
     bids_for = []
     heapq.heapify(bids_against)
     for i in range(0, MAX_ITER):
-        if i < EVIDENCE_TIME:    #allow for extra time after evidence to just trade
-            #all agents learn from recent changes in market price
-            learn_from_market(market)
-            
+        if i < EVIDENCE_TIME:    #allow for extra time after evidence to just trade          
             if i%iters_per_evidence == 0:
+                learn_from_market(market) #all agents learn from recent changes in market price
+                market.old_market_price = market.market_price
+                
                 the_almighty.update_universe(market, int(N_AGENTS * FRACTION_RECEIVING_EVIDENCE))     
                 #print("God has spoken!")   
-                
-        market.old_market_price = market.market_price
         
         all_agents = market.all_agents.copy()
         random.shuffle(all_agents)
