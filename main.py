@@ -9,8 +9,8 @@ import argparse
 # Should be just a couple lines in the script
 
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
-parser.add_argument('-n', metavar="NUM_AGENTS", default=100, type=int, help='Provide the number of agents in the market (default: 100)')
-parser.add_argument('-i', metavar="NUM_ITERATIONS", default=200, type=int, help='Provide the number of iterations of the market (default: 50)')
+parser.add_argument('-n', metavar="NUM_AGENTS", default=20, type=int, help='Provide the number of agents in the market (default: 100)')
+parser.add_argument('-i', metavar="NUM_ITERATIONS", default=150, type=int, help='Provide the number of iterations of the market (default: 50)')
 
 args = parser.parse_args()
 
@@ -18,17 +18,20 @@ N_AGENTS = args.n
 MAX_ITER = args.i
 
 N_EVIDENCE = 20
-FRACTION_RECEIVING_EVIDENCE = 0.1
+FRACTION_RECEIVING_EVIDENCE = 0.6667
 FRACTION_EXTRA_TIME = 0.5
 EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
+#Values pertaining to agent behavior
 RISK_FACTOR = 0.05
+STUBBORNNESS = 0.7 #range from 0 (trusts the market) to 1 (only trust yourself!)
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
 class Market:
     all_agents = []
     market_price = None
+    old_market_price = None
     
     def __init__(self, n):
         self.all_agents = [Agent(i, 0.5) for i in range(0,n)]
@@ -88,6 +91,13 @@ class Agent:
         self.wealth = 100
         self.n_contracts_for = 0
         self.n_contracts_against = 0
+        
+    #Here, assuming the market has updated based on some invisible evidence, update your own belief based on that evidence
+    def update_belief_given_market(self, bayes_factor):
+        adjusted_bayes_factor = STUBBORNNESS + (1-STUBBORNNESS)*bayes_factor
+        old_belief = self.belief
+        new_belief = old_belief / (old_belief + adjusted_bayes_factor*(1-old_belief))
+        self.belief = new_belief
         
     def for_main(self, bids_for, bids_against, market_price):
         max_for = heapq.nsmallest(1, bids_for)
@@ -228,6 +238,17 @@ def transact(bids_for, bids_against, market):
     else:
         return
         
+def get_bayesian_update_factor(x_start, x_final):
+    return (x_start*(1-x_final))/(x_final*(1-x_start))
+    
+#assume the change in market price was the result of evidence. 
+#determine how strong that evidence was "bayes_factor" and then update all the agents beliefs accordingly
+def learn_from_market(market):
+    if market.market_price == None or market.old_market_price == None:
+        return
+    bayes_factor = get_bayesian_update_factor(market.old_market_price, market.market_price)
+    for i in range(0, N_AGENTS):
+        market.all_agents[i].update_belief_given_market(bayes_factor)
 def main():
     the_almighty = God(0.6, 1-0.6)
     
@@ -246,7 +267,12 @@ def main():
         if i < EVIDENCE_TIME:    #allow for extra time after evidence to just trade
             if i%iters_per_evidence == 0:
                 the_almighty.update_universe(market, int(N_AGENTS * FRACTION_RECEIVING_EVIDENCE))     
-                #print("God has spoken!")       
+                #print("God has spoken!")   
+                
+        #all agents learn from recent changes in market price
+        learn_from_market(market)
+                
+        market.old_market_price = market.market_price
         
         all_agents = market.all_agents.copy()
         random.shuffle(all_agents)
@@ -264,9 +290,9 @@ def main():
     
     print("God's Belief: ", the_almighty.belief)
         
-    all_beliefs = [market.all_agents[i].belief for i in range(0,N_AGENTS)]
-    average = sum(all_beliefs) / len(all_beliefs)
-    print("Average Belief: ", average)
+    #all_beliefs = [market.all_agents[i].belief for i in range(0,N_AGENTS)]
+    #average = sum(all_beliefs) / len(all_beliefs)
+    #print("Average Belief: ", average)
     
     print("Final Market Price: ", market.market_price)
     
