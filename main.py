@@ -1,12 +1,8 @@
 import random
 import heapq
 import argparse
-#import pandas as pd                I do all my programming on Peregrine, and I don't know how to get pandas....
-#import matplotlib.pyplot as plt                        ^^^ see above. If anyone knows, please let me know :)
-
-# Tommy: There's a page on the wiki about installing packages: 
-# https://redmine.hpc.rug.nl/redmine/projects/peregrine/wiki/Installation_of_extra_applications_or_libraries_(make_pip_or_R)
-# Should be just a couple lines in the script
+import pandas as pd      
+import matplotlib.pyplot as plt
 
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
 parser.add_argument('-n', metavar="NUM_AGENTS", default=20, type=int, help='Provide the number of agents in the market (default: 100)')
@@ -258,6 +254,7 @@ def main():
     market = Market(N_AGENTS)
     # data = pd.DataFrame(columns=['iter', 'agent_id', 'belief', 'wealth', 'n_for', 'n_against', 'market_price'])
     price_history = []
+    god_history = []
 
     bids_against = []
     heapq.heapify(bids_against)
@@ -287,6 +284,7 @@ def main():
         
         print("Iter: ", i, "\tMarket Price: ", market.market_price)
         price_history.append(market.market_price)
+        god_history.append(the_almighty.belief)
     
     print("God's Belief: ", the_almighty.belief)
         
@@ -303,15 +301,15 @@ def main():
 
 
     #import pdb; pdb.set_trace()
-    
-    #Yeah, sorry, until Peregrine and I sort out our differences, I can't use these. I love the graph though, really nice addition!
 
-    #plt.figure(figsize=(12,4))
-    #plt.plot(range(MAX_ITER), price_history)
-    #plt.xlabel("Iterations (Market Cycles)")
-    #plt.ylabel("Price")
-    #plt.grid()
-    #plt.show()
+    plt.figure(figsize=(12,4))
+    plt.plot(range(MAX_ITER), price_history)
+    plt.plot(range(MAX_ITER), god_history)
+    plt.xlabel("Iterations (Market Cycles)")
+    plt.ylabel("Price")
+    plt.grid()
+    plt.show()
+    #plt.savefig('foo.png')
 
 
 if __name__ == "__main__":
