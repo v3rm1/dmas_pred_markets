@@ -15,12 +15,12 @@ MAX_ITER = args.i
 
 N_EVIDENCE = 20
 FRACTION_RECEIVING_EVIDENCE = 0.1
-FRACTION_EXTRA_TIME = 0.66667
+FRACTION_EXTRA_TIME = 0.333333
 EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
 #Values pertaining to agent behavior
-RISK_FACTOR = 0.05
-STUBBORNNESS = 0.7 #range from 0 (trusts the market) to 1 (only trust yourself!)
+RISK_FACTOR = 0.02
+STUBBORNNESS = 0.5 #range from 0 (trusts the market) to 1 (only trust yourself!)
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
@@ -31,6 +31,7 @@ class Market:
     
     def __init__(self, n):
         self.all_agents = [Agent(i, 0.5) for i in range(0,n)]
+        market_price = 0.5
         
     def is_broke(self, agent_id, price, type_purchase):
         if self.all_agents[agent_id].wealth < price:
@@ -262,12 +263,12 @@ def main():
     heapq.heapify(bids_against)
     for i in range(0, MAX_ITER):
         if i < EVIDENCE_TIME:    #allow for extra time after evidence to just trade
+            #all agents learn from recent changes in market price
+            learn_from_market(market)
+            
             if i%iters_per_evidence == 0:
                 the_almighty.update_universe(market, int(N_AGENTS * FRACTION_RECEIVING_EVIDENCE))     
                 #print("God has spoken!")   
-                
-        #all agents learn from recent changes in market price
-        learn_from_market(market)
                 
         market.old_market_price = market.market_price
         
