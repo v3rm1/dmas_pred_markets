@@ -13,14 +13,16 @@ args = parser.parse_args()
 N_AGENTS = args.n
 MAX_ITER = args.i
 
-N_EVIDENCE = 20
-FRACTION_RECEIVING_EVIDENCE = 0.1
-FRACTION_EXTRA_TIME = 0.333333
+TICK_SIZE = 0.01  #This is the smallest discrete unit of price
+
+N_EVIDENCE = 20 #Number of pieces of evidence introduced to the system
+FRACTION_RECEIVING_EVIDENCE = 0.1   #Fraction of agents who receive evidence when it is introduced
+FRACTION_EXTRA_TIME = 0.333333      #Extra time is time after all evidence has been introduced, so that agents can continue to trade
 EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
-#Values pertaining to agent behavior
-RISK_FACTOR = 0.02
-STUBBORNNESS = 0.1 #range from 0 (trusts the market) to 1 (only trust yourself!)
+####Values pertaining to agent behavior
+RISK_FACTOR = 0.02  #Used to determine how many shares an agent buys, when it expects to profit
+STUBBORNNESS = 0.1  #range from 0 (trusts the market) to 1 (only trust yourself!)
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
@@ -30,9 +32,10 @@ class Market:
     old_market_price = None
     
     def __init__(self, n):
-        self.all_agents = [Agent(i, 0.5) for i in range(0,n)]
-        market_price = 0.5
+        self.all_agents = [Agent(i, 0.5) for i in range(0,n)]   #all agents are initialized with a belief of 0.5
+        self.market_price = 0.5
         
+    #check if a given agent can afford a transaction
     def is_broke(self, agent_id, price, type_purchase):
         if self.all_agents[agent_id].wealth < price:
             if type_purchase == "FOR" and self.all_agents[agent_id].n_contracts_against >= 1: #if they have a contract against to sell, they aren't really broke!
@@ -64,7 +67,7 @@ class Bid:
     price = None
     age = None
     agent_id = None
-    priority = None
+    priority = None #this is for heapq to properly sort the heap (you can ignore it)
     
     def __lt__(self, other):
         return self.priority < other.priority
@@ -96,6 +99,7 @@ class Agent:
         new_belief = old_belief / (old_belief + adjusted_bayes_factor*(1-old_belief))
         self.belief = new_belief
         
+    #Place bids "for" the proposition
     def for_main(self, bids_for, bids_against, market_price):
         max_for = heapq.nsmallest(1, bids_for)
         max_against = heapq.nsmallest(1, bids_against)
@@ -104,15 +108,11 @@ class Agent:
         
         if max_for == []:            #if no bids_for have been placed yet
             if max_against == []:       #if no bids_against have been placed yet
-                if market_price == None:
-                    buy_price = self.belief/2          #offer to buy at half the price you think it's worth (this choice is arbitrary, there is no market information yet about the actual value)
-                else:
-                    buy_price = market_price + 0.001
+                buy_price = market_price + TICK_SIZE
             else:
                 buy_price = 1 - max_against[0].price             #offer to buy at the cheapest price
         else:
-            buy_price = max_for[0].price 
-            buy_price += 0.001               #offer to buy at 1 cent more than the next highest bid
+            buy_price = max_for[0].price + TICK_SIZE #offer to buy at 1 cent more than the next highest bid             
             
         n_would_like_to_buy = int((self.belief-buy_price)/RISK_FACTOR)
         n_can_buy = int(self.wealth/buy_price) + self.n_contracts_against
@@ -121,23 +121,22 @@ class Agent:
             place_bid_for(self, bids_for, buy_price)
             n_will_buy -= 1
     
+    #Place bids "against" the proposition
+    #Here, the price is market price is flipped: (1-market_price) If "for" contracts are trading for 90 cents, then "against" contracts are trading for 10 cents.
     def against_main(self, bids_for, bids_against, market_price):
         max_for = heapq.nsmallest(1, bids_for)
         max_against = heapq.nsmallest(1, bids_against)
         buy_price = 1
-        against_belief = 1-self.belief
+        against_belief = 1-self.belief 
         
         if max_against == []:           #if no bids_against have been placed yet
             if max_for == []:           #if no bids_for have been placed yet
-                if market_price == None:
-                    buy_price = against_belief/2      #offer to buy for half what you think it's worth (this choice is arbitrary, there is no market information yet about the actual value)
-                else:
-                    buy_price = (1-market_price) + 0.001
+                buy_price = (1-market_price) + TICK_SIZE
             else:
                 buy_price = 1 - max_for[0].price          #offer to buy at cheapest price
         else:
             buy_price = max_against[0].price
-            buy_price += 0.001            #offer to buy at 1 cent more than highest bid
+            buy_price += TICK_SIZE            #offer to buy at 1 cent more than highest bid
             
         n_would_like_to_buy = int((against_belief-buy_price)/RISK_FACTOR)
         n_can_buy = int(self.wealth/buy_price) + self.n_contracts_for
@@ -247,7 +246,7 @@ def learn_from_market(market):
     for i in range(0, N_AGENTS):
         market.all_agents[i].update_belief_given_market(bayes_factor)
 def main():
-    the_almighty = God(0.6, 1-0.6)
+    the_almighty = God(0.6, 1-0.6) #We use this object to distribute evidence, and maintain the complete bayesian probability
     
     iters_per_evidence = int(EVIDENCE_TIME/N_EVIDENCE)
     
@@ -274,12 +273,12 @@ def main():
         random.shuffle(all_agents)
         for a in all_agents:
             
+            #place bids for or against the proposition
             a.for_main(bids_for, bids_against, market.market_price) 
             a.against_main(bids_for, bids_against, market.market_price)  
-                            
             
+            #trade contracts if possible                
             transact(bids_for, bids_against, market)
-            # data.loc[(i*N_AGENTS)+a.i_d] = [i, a.i_d, a.belief, a.wealth, a.n_contracts_for, a.n_contracts_against, market.market_price]
         
         print("Iter: ", i, "\tMarket Price: ", market.market_price)
         price_history.append(market.market_price)
@@ -304,6 +303,7 @@ def main():
     plt.figure(figsize=(12,4))
     plt.plot(range(MAX_ITER), price_history)
     plt.plot(range(MAX_ITER), god_history)
+    plt.legend(['Market Price', 'True Bayesian Probability'])
     plt.xlabel("Iterations (Market Cycles)")
     plt.ylabel("Price")
     plt.grid()
