@@ -14,6 +14,10 @@ To manually input parameters follow the example:
 ```
 python3 visual.py -n 100 -i 50
 ```
+To run the software without results visualization:
+```
+python3 main.py [-n 100 -i 50]
+```
 
 ## Dog with garlic on head has a vietnam flashback (Still not a gif, we're working on it)
 ![Dog with garlic on head has a vietnam flashback](https://i.imgur.com/eKTqxXR.png)
