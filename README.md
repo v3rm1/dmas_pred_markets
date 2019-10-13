@@ -8,11 +8,11 @@ pip3 install pandas matplotlib
 ```
 Run default parameters (100 agents, 50 iterations):
 ```
-python3 main.py
+python3 visual.py
 ```
 To manually input parameters follow the example:
 ```
-python3 main.py -n 100 -i 50
+python3 visual.py -n 100 -i 50
 ```
 
 ## Dog with garlic on head has a vietnam flashback (Still not a gif, we're working on it)
