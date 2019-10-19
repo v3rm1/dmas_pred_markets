@@ -8,7 +8,7 @@ possibility of studying this kind of system under different circumstances.
 
     Usage:
 
-    python3 usage: run.py [-h] [-n NUM_AGENTS] [-i NUM_ITERATIONS] [-r RISK_FACTOR]
+    python3 run.py [-h] [-n NUM_AGENTS] [-i NUM_ITERATIONS] [-r RISK_FACTOR]
               [-t TRUST] [-e NUM_EVIDENCE] [-f FRACTION_RECEIVING_EVIDENCE]
               [-x EXTRA_TIME] [-w WEALTH]
 
