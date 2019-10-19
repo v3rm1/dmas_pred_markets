@@ -1,11 +1,28 @@
-
+# ============================================================
+# Prediction Market Simulation - Bid
+# ============================================================
+#
+# A number of agents participate concurrently in a market.
+# They are able to buy and sell contracts whichpay off in 
+# case of either a positive ('for') or a negative ('against') 
+# outcome of a particular event.
+#
+# Agents place bids to exchange contracts.
+#
+# =============================================================
 class Bid:
-    type_bid = None #Is it an ask or a bid?
-    price = None
-    age = None
-    agent_id = None
-    priority = None #this is for heapq to properly sort the heap (you can ignore it)
+    """ Class representing a bid for a contract.
     
+    Attributes:
+        type_bid: String in {'FOR', 'AGAINST'}, sets the 
+            type of contract to bid for.
+        price: The cost of the contract at the moment of 
+            the transaction.
+        age: The TIME value to sort the Bids chronologically.
+        agent_id: Agent.ID value for the bidding agent.
+        priority: Value needed for heapq to sort the heap by 
+            price.
+    """
     def __lt__(self, other):
         return self.priority < other.priority
     

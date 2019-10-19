@@ -170,7 +170,7 @@ def main():
     for i in range(0, MAX_ITER):
         # Allow for extra time after evidence to just trade.
         if i < EVIDENCE_TIME:
-            if i%iters_per_evidence == 0:
+            if i%iters_per_evidence == 0: #TODO: fix, if iterations < 30 error divide by zero
                 # All agents learn from recent changes in market price.
                 learn_from_market(market)
                 market.old_market_price = market.market_price
@@ -199,18 +199,10 @@ def main():
         ### TODO: Add difference between the values area graph
 
     print("God's Belief: ", the_almighty.belief)
-        
-    #all_beliefs = [market.all_agents[i].belief for i in range(0,N_AGENTS)]
-    #average = sum(all_beliefs) / len(all_beliefs)
-    #print("Average Belief: ", average)
-    
     print("Final Market Price: ", market.market_price)
-    
     print("\nAgent Summary:")
-    
     for a in market.all_agents:
-        print("Agent ID: ", a.i_d, "\tBelief: ", "{0:.2f}".format(a.belief), "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", "{0:.2f}".format(a.wealth))
-    
+        print("Agent ID: ", a.ID, "\tBelief: ", "{0:.2f}".format(a.belief), "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", "{0:.2f}".format(a.wealth))
     plt.waitforbuttonpress()
 
 
