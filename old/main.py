@@ -3,6 +3,7 @@ import heapq
 import argparse
 import pandas as pd      
 import matplotlib.pyplot as plt
+import numpy as np
 
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
 parser.add_argument('-n', metavar="NUM_AGENTS", default=50, type=int, help='Provide the number of agents in the market (default: 100)')
@@ -292,10 +293,14 @@ def main():
     
     print("Final Market Price: ", market.market_price)
     
-    print("\nAgent Summary:")
+    print("Difference: ", abs(the_almighty.belief - market.market_price))
     
-    for a in market.all_agents:
-        print("Agent ID: ", a.i_d, "\tBelief: ", "{0:.2f}".format(a.belief), "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", "{0:.2f}".format(a.wealth))
+    print("Correlation: ", np.corrcoef(price_history, god_history))
+    
+    #print("\nAgent Summary:")
+    
+    #for a in market.all_agents:
+        #print("Agent ID: ", a.i_d, "\tBelief: ", "{0:.2f}".format(a.belief), "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", "{0:.2f}".format(a.wealth))
 
 
     #import pdb; pdb.set_trace()
