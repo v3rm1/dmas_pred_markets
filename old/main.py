@@ -8,6 +8,7 @@ import numpy as np
 parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
 parser.add_argument('-n', metavar="NUM_AGENTS", default=50, type=int, help='Provide the number of agents in the market (default: 100)')
 parser.add_argument('-i', metavar="NUM_ITERATIONS", default=150, type=int, help='Provide the number of iterations of the market (default: 50)')
+parser.add_argument('-s', metavar="STUBBORNNESS", default=1, type=float, help='Provide agent stubbornness (default: 1)')
 
 args = parser.parse_args()
 
@@ -23,7 +24,7 @@ EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)
 
 ####Values pertaining to agent behavior
 RISK_FACTOR = 0.02  #Used to determine how many shares an agent buys, when it expects to profit
-STUBBORNNESS = 0.1  #range from 0 (trusts the market) to 1 (only trust yourself!)
+STUBBORNNESS = args.s  #range from 0 (trusts the market) to 1 (only trust yourself!)
 
 TIME = 0 #This will be the time which will allow the bids/asks to be ordered based on how old they are
 
