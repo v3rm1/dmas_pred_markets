@@ -4,13 +4,19 @@ In prediction (or Information) markets participants trade in contracts whose pay
 ## Instructions
 Fulfill requirements:
 ```
-pip3 install pandas matplotlib
+pip3 install numpy matplotlib
 ```
-Run default parameters (100 agents, 50 iterations):
+Run default parameters (50 agents, 100 iterations):
 ```
 python3 run.py
 ```
-To manually input parameters follow the example:
+To manually input parameters:
+```
+python3 run.py [-h] [-n NUM_AGENTS] [-i NUM_ITERATIONS] [-r RISK_FACTOR]
+              [-t TRUST] [-e NUM_EVIDENCE] [-f FRACTION_RECEIVING_EVIDENCE]
+              [-x EXTRA_TIME] [-w WEALTH]
+```
+Example: 
 ```
 python3 run.py -n 100 -i 50
 ```
