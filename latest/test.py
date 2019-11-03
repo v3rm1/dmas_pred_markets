@@ -1,49 +1,22 @@
-""" Prediction Market Simulation.
+""" 
+Test script to determine relationship 
+between parameters and correlation of market 
+price and 'True Probability'.
 
-In prediction (or Information) markets participants trade in contracts whose 
-payoff depends on future events. In a truly efficient prediction market, 
-the price of a contract will be the best predictor of the related event.
-This program runs a simulation of such a market giving the user the 
-possibility of studying this kind of system under different circumstances.
+Usage: python3 test.py
 
-    Usage:
-
-    python3 run.py [-h] [-n NUM_AGENTS] [-i NUM_ITERATIONS] [-r RISK_FACTOR]
-              [-t TRUST] [-e NUM_EVIDENCE] [-f FRACTION_RECEIVING_EVIDENCE]
-              [-x EXTRA_TIME] [-w WEALTH]
-
+Output: ./results.csv
 """
 
 import numpy as np
 import random
 import heapq
 import argparse
+import pandas as pd      
 import matplotlib.pyplot as plt
 import time
 from god import God
 from market import Market
-
-parser = argparse.ArgumentParser(description='Parameters of the Prediction Market simulation.')
-parser.add_argument('-n', metavar="num_agents",         default=50,     type=int,   help='The number of agents in the market (default: 50).')
-parser.add_argument('-i', metavar="num_iterations",     default=100,    type=int,   help='The number of iterations of the market (default: 100).')
-parser.add_argument('-r', metavar="risk_factor",        default=0.3,    type=float, help='Determines the number of contracts the agent will buy, [e.g. Buy = (Belief - Price) * 100 * Risk] (Default: 0.3).')
-parser.add_argument('-t', metavar="trust",              default=0.3,    type=float, help='Determines how much the agents trust the market price as an indicator of probability (Default: 0.3).')
-parser.add_argument('-e', metavar="num_evidence",       default=20,     type=int,   help='The number of evidences provided to the agents (default: 20).')
-parser.add_argument('-f', metavar="receiving_evidence", default=0.33,   type=float, help='Determines how many agents receive pieces of evidence (Default: 0.33).')
-parser.add_argument('-x', metavar="extra_time",         default=0.10,   type=float, help='Determines how much time the agents keep on trading after all the evidence has been provided (Default: 0.10).')
-parser.add_argument('-w', metavar="wealth",             default=100,    type=int,   help='Units of currency every agent is initialized with (Default: 100).')
-
-args = parser.parse_args()
-
-N_AGENTS                             = args.n           # Number of the agents particecipating in the system.
-MAX_ITER                             = args.i           # Number of cycles of the market, every agent performs an action in each cycle.
-N_EVIDENCE                           = args.e           # How many times a piece of information is shared with a percentage of the population.
-FRACTION_RECEIVING_EVIDENCE          = args.f           # Percentage of agents who receive information when it is introduced.
-FRACTION_EXTRA_TIME                  = args.x           # Fraction of the total number of cycles, determines how many cycles the agents keep on trading after the last piece of information has been provided.
-RISK_FACTOR                          = args.r           # Used to determine how many contracts an agent buys when it expects to profit. [Buy = (Belief - Price) * 100 * Risk]
-TRUST                                = args.t           # How much the agents trust the market price as an indicator of probability of the event.
-WEALTH                               = args.w           # Units of currency every agent is initialized with, it's exchanged to buy contracts.
-EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)   # Number of cycles the agents keep on trading after all the evidence has been provided.
 
     
 def get_older_price(bid_for, bid_against):
@@ -98,7 +71,7 @@ def transact(bids_for, bids_against, market):
     else:
         return
         
-def get_bayesian_update_factor(old_price, new_price):
+def get_bayesian_update_factor(old_price, new_price, N_AGENTS):
     """TODO: discuss math behind this."""
     return (old_price*(1-new_price))/(new_price*(1-old_price))
     
@@ -106,8 +79,8 @@ def learn_from_market(market):
     """Updates the beliefs of the agents."""
     if market.market_price == None or market.old_market_price == None:
         return
-    bayes_factor = get_bayesian_update_factor(market.old_market_price, market.market_price)
-    for i in range(0, N_AGENTS):
+    bayes_factor = get_bayesian_update_factor(market.old_market_price, market.market_price, len(market.all_agents))
+    for i in range(0, len(market.all_agents)):
         market.all_agents[i].update_belief_given_market(bayes_factor)
 
 def plot_dynamic(x, y, fig, ax, color):
@@ -125,7 +98,7 @@ def plot_dynamic(x, y, fig, ax, color):
         color: str color for the plot.
     """
     ax.plot(x, y, color)
-    plt.legend(['Market Price', 'True Bayesian Probability'])
+    plt.legend(['Market Price', 'True Bayesian Probability', 'Agent 0 Belief'])
     plt.xlabel("Iterations (Market Cycles)")
     plt.ylabel("Price")
     fig.canvas.draw()
@@ -134,7 +107,10 @@ def plot_dynamic(x, y, fig, ax, color):
 
 
 
-def main():
+def test(N_AGENTS, MAX_ITER, N_EVIDENCE, FRACTION_RECEIVING_EVIDENCE, FRACTION_EXTRA_TIME, RISK_FACTOR, TRUST, WEALTH):
+    """Main cycle from 'run.py'."""
+
+    EVIDENCE_TIME = int((1-FRACTION_EXTRA_TIME)*MAX_ITER)   # Number of cycles the agents keep on trading after all the evidence has been provided.
 
     # Exit the program if user inputs invalid arguments.
     if (RISK_FACTOR <= 0.0):
@@ -150,7 +126,6 @@ def main():
     
     iters_per_evidence = np.round(EVIDENCE_TIME/N_EVIDENCE)
     
-    print("Creating {} agents...\n".format(N_AGENTS))
     market = Market(N_AGENTS, RISK_FACTOR, TRUST, WEALTH, belief_random=True)
 
     bids_against = []
@@ -160,11 +135,8 @@ def main():
 
     price_history = []
     god_history = []
-    # agent_0_history = []
+    agent_0_history = []
 
-    fig = plt.figure(figsize=(16,8))
-    ax = plt.gca()
-    plt.grid()
     
 
     for i in range(0, MAX_ITER):
@@ -189,32 +161,74 @@ def main():
             # Trade contracts if possible.
             transact(bids_for, bids_against, market)
         
-        print("Iter: ", i, "\tMarket Price: ", market.market_price)
         price_history.append(market.market_price)
         god_history.append(the_almighty.belief)
 
-        # agent_0_history.append(all_agents[0].belief)
-
-        plot_dynamic(range(i+1), price_history, fig, ax, color="blue")
-        plot_dynamic(range(i+1), god_history, fig, ax, color="orange")
-        # plot_dynamic(range(i+1), agent_0_history, fig, ax, color="red")
-
-        plt.draw()
+        agent_0_history.append(all_agents[0].belief)
 
 
-    print("God's Belief: ", the_almighty.belief)
-    print("Final Market Price: ", market.market_price)
-    print("\nAgent Summary:")
-    for a in market.all_agents:
-        print("Agent ID: ", a.ID, "\tBelief: ", "{0:.2f}".format(a.belief), "\tFor: ", a.n_contracts_for, "\tAgainst: ", a.n_contracts_against, "\tWealth: ", "{0:.2f}".format(a.wealth))
-    print("Correlation: {}".format(np.min(np.corrcoef(price_history, god_history))))
-    print("Difference: {}".format(np.linalg.norm(np.array(god_history) - np.array(price_history))))
-    plt.plot(range(MAX_ITER), price_history, "blue")
-    plt.plot(range(MAX_ITER), god_history, "orange")
-    plt.legend(['Market Price', 'True Bayesian Probability'])
-    plt.xlabel("Iterations (Market Cycles)")
-    plt.ylabel("Price")
-    plt.show()
+    return np.corrcoef(price_history, god_history) , (the_almighty.belief - market.market_price)
+
+def main():
+    """Cycles through every combination of the specified parameters parameters"""
+
+    ## Full Version
+    # test_agents = [50, 100]
+    # test_iters = [50, 100, 200, 300]
+    # test_evidence = [5, 10, 20]
+    # test_fraction = [0.1, 0.25, 0.33, 0.50, 0.75]
+    # test_trust = [0, 0.3, 0.5, 0.7, 1]
+    # test_risk = [0.1, 0.5, 1.0, 1.5]
+
+    # Reduced Version
+    test_agents = [50, 100]
+    test_iters = [100, 200]
+    test_evidence = [20]
+    test_fraction = [0.25, 0.50, 0.75]
+    test_trust = [0, 0.5, 1]
+    test_risk = [1]
+
+    history_agents = []
+    history_iters = []
+    history_evidence = []
+    history_fraction = []
+    history_trust = []
+    history_risk = []
+    history_diff = []
+    history_corr = []
+    for n_agents in test_agents:
+        for n_iters in test_iters:
+            for n_evidence in test_evidence:
+                for fraction in test_fraction:
+                    for trust in test_trust:
+                        for risk in test_risk:
+                            correlation = []
+                            difference = []
+                            for i in range(25):
+                                corr, diff = test(n_agents, n_iters, n_evidence, fraction, 0.1, risk, trust, 100)
+                                correlation.append(np.min(corr))
+                                difference.append(np.abs(diff))
+                            history_agents.append(n_agents)
+                            history_iters.append(n_iters)
+                            history_evidence.append(n_evidence)
+                            history_fraction.append(fraction)
+                            history_trust.append(trust)
+                            history_risk.append(risk)
+                            history_diff.append(np.average(difference))
+                            history_corr.append(np.average(correlation))
+                            
+    results = pd.DataFrame({"n_agents"                        : history_agents,
+                  "n_iterations"                    : history_iters,
+                  "n_evidence"                      : history_evidence,
+                  "fraction receiving evidence"     : history_fraction,
+                  "trust"                           : history_trust,
+                  "risk"                            : history_risk,
+                  "difference"                      : history_diff,
+                  "correlation"                     : history_corr
+                  })
+
+    results.to_csv("./results.csv")
+
 
 if __name__ == "__main__":
     main()

@@ -60,7 +60,7 @@ class Agent:
                 bayes_factor: Factor for scaling probabilities 
                     with Bayesian Updating.
             """
-        adjusted_bayes_factor = (1-self.trust) + (self.trust*bayes_factor)
+        adjusted_bayes_factor = (self.trust*bayes_factor) + (1-self.trust)
         old_belief = self.belief
         new_belief = old_belief / (old_belief + adjusted_bayes_factor*(1-old_belief))
         self.belief = new_belief

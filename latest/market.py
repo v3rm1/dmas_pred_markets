@@ -16,6 +16,7 @@
 # =============================================================
 
 from agent import Agent
+from numpy import random
 
 class Market:
     """ Class representing the prediction market.
@@ -32,7 +33,7 @@ class Market:
     market_price = None
     old_market_price = None
     
-    def __init__(self, n_agents, risk_factor, trust, wealth):
+    def __init__(self, n_agents, risk_factor, trust, wealth, belief_random=False):
         """ Initialize market.
         
         Args:
@@ -45,8 +46,11 @@ class Market:
             wealth: Units of currency owned by a single agent. Every contract
                 costs [0.0 < price < 1.0] and price_for = (1.0 - price_against).
         """
-        # TODO: all agents are initialized with belief 0.5 and the market price is 0.5 too, we might want to randomly initialize these values.
-        self.all_agents = [Agent(i, 0.5, risk_factor, trust, wealth) for i in range(0,n_agents)]
+        if (belief_random):
+            believes = random.uniform(low=0.05, high=0.95, size=n_agents)
+            self.all_agents = [Agent(i, believes[i], risk_factor, trust, wealth) for i in range(0,n_agents)]
+        else:
+            self.all_agents = [Agent(i, 0.5, risk_factor, trust, wealth) for i in range(0,n_agents)]
         self.market_price = 0.5
         
     def is_broke(self, agent_id, price, type_purchase):
